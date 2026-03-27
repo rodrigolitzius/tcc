@@ -6,7 +6,7 @@ mod api;
 
 use crate::{
     db_analyser::{Scrobble, build_scrobble},
-    api::{ApiState, handlers::{login, scrobbles_to_text}}
+    api::{ApiState, handlers::{login, scrobbles_to_text, recent}}
 };
 
 use std::{sync::Arc};
@@ -24,6 +24,7 @@ async fn start_backend(state: ApiState) {
     let app = Router::new()
         .route("/dev/recent", get(scrobbles_to_text))
         .route("/login", post(login))
+        .route("/recent", get(recent))
         .layer(cors)
         .with_state(state);
 

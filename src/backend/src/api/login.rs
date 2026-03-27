@@ -20,26 +20,3 @@ pub async fn build_user_track_hashmap(scrobbles: &Vec<Scrobble>, session: &mut S
 
     return result;
 }
-
-// pub async fn enforce_auth(headers: &HeaderMap, sessions: &HashMap<Uuid, LoginSession>) -> bool {
-//     if !headers.contains_key(AUTHORIZATION) {
-//         return false;
-//     }
-
-//     let stringged_header = match headers.get(AUTHORIZATION).unwrap().to_str() {
-//         Ok(v) => v,
-//         Err(_) => {return false}
-//     };
-
-//     let uuid = match Uuid::parse_str(stringged_header) {
-//         Ok(v) => v,
-//         Err(_) => {return false;}
-//     };
-
-//     if !sessions.contains_key(&uuid) {
-//         return false;
-//     }
-
-//     return true;
-
-// }

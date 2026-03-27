@@ -3,14 +3,13 @@ use axum::{
     http::StatusCode
 };
 
-use serde::Deserialize;
 use serde_json::json;
 use uuid::Uuid;
 use std::{collections::HashMap, str::FromStr};
 
 use crate::api::{
     ApiState, LoginSession,
-    login::{build_user_track_hashmap}
+    login::{build_user_track_hashmap, LoginRequest}
 };
 
 use crate::{
@@ -18,7 +17,7 @@ use crate::{
     util::get_param_default
 };
 
-pub struct Auth();
+pub struct Auth{uuid: Uuid}
 
 impl<S> FromRequestParts<S> for Auth
 where
@@ -46,27 +45,52 @@ where
         };
 
         return match state.sessions.read().await.contains_key(&uuid) {
-            true => Ok(Auth{}),
+            true => Ok(Auth{uuid: uuid}),
             false => Err(StatusCode::UNAUTHORIZED)
         }
     }
 }
 
-#[derive(Deserialize)]
-pub struct LoginRequest {
-    username: String,
-    password: String,
-    url: String
-}
-
 pub async fn recent(
-    _auth: Auth,
-    State(_state): State<ApiState>,
-) -> () {
-    println!("User fetched state")
+    State(state): State<ApiState>,
+    Query(query): Query<HashMap<String, String>>,
+    auth: Auth
+) -> Result<String, StatusCode> {
+    let mut limit = get_param_default(&query, "limit", 0) as usize;
+    let offset = get_param_default(&query, "offset", 0) as usize;
+
+    if limit == 0 {
+        limit = state.scrobbles.len();
+    }
+
+    let session = state.sessions.read().await;
+    let session = match session.get(&auth.uuid) {
+        Some(v) => v,
+        None => {return Err(StatusCode::INTERNAL_SERVER_ERROR);}
+    };
+
+    let mut result = String::new();
+    for scrobble in state.scrobbles.iter().skip(offset).take(limit) {
+        if !(scrobble.user_id == session.navidrome_session.user_id) {continue;}
+
+        let music_info = match session.tracks_hashmap.get(&scrobble.media_file_id) {
+            Some(v) => v,
+            None => {continue;}
+        };
+
+        result.push_str(format!("{} - {}\n",
+            music_info["title"],
+            music_info["artist"],
+        ).as_str());
+    }
+
+    return Ok(result);
 }
 
-pub async fn login(State(state): State<ApiState>, Json(login_request): Json<LoginRequest>) -> (StatusCode, Json<serde_json::Value>) {
+pub async fn login(
+    State(state): State<ApiState>,
+    Json(login_request): Json<LoginRequest>
+) -> (StatusCode, Json<serde_json::Value>) {
     let url = &login_request.url;
     let username = &login_request.username;
     let password = &login_request.password;
@@ -94,26 +118,4 @@ pub async fn login(State(state): State<ApiState>, Json(login_request): Json<Logi
     state.sessions.write().await.insert(login_session.uuid, login_session);
 
     return (StatusCode::OK, Json(json!({"status": "success", "id": uuid})));
-}
-
-pub async fn scrobbles_to_text(
-    State(state): State<ApiState>,
-    Query(query): Query<HashMap<String, String>>
-) -> String {
-    let mut limit = get_param_default(&query, "limit", 0) as usize;
-    let offset = get_param_default(&query, "offset", 0) as usize;
-
-    if limit == 0 {
-        limit = state.scrobbles.len();
-    }
-
-    let mut result = String::new();
-    for scrobble in state.scrobbles.iter().skip(offset).take(limit) {
-        result.push_str(format!("{} - {}\n",
-            scrobble.media_file_id,
-            scrobble.user_id,
-        ).as_str());
-    }
-
-    return result;
 }

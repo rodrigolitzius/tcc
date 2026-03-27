@@ -1,5 +1,12 @@
 use std::collections::HashMap;
+use serde::Deserialize;
 
+#[derive(Deserialize)]
+pub struct LoginRequest {
+    pub username: String,
+    pub password: String,
+    pub url: String
+}
 
 use crate::{
     db_analyser::{Scrobble},

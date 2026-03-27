@@ -6,7 +6,7 @@ mod api;
 
 use crate::{
     db_analyser::{Scrobble, build_scrobble},
-    api::{ApiState, handlers::{login, scrobbles_to_text, recent}}
+    api::{ApiState, handlers::{login, recent}}
 };
 
 use std::{sync::Arc};
@@ -22,9 +22,8 @@ async fn start_backend(state: ApiState) {
 
     // TODO: Add a route to the logged in user's recently played tracks
     let app = Router::new()
-        .route("/dev/recent", get(scrobbles_to_text))
+        .route("/dev/recent", get(recent))
         .route("/login", post(login))
-        .route("/recent", get(recent))
         .layer(cors)
         .with_state(state);
 

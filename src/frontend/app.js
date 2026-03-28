@@ -23,29 +23,26 @@ form.addEventListener('submit', function(event) {
             password: senha,
             url: nd_url
         })
-    }).then(response => {
+    }).then((response) => {
         if (!response.ok) {
-            console.warn("Throwing error")
             const error = new Error(`HTTP ${response.status}`);
             error.code = response.status;
             error.message = response.json();
 
             throw error;
         }
-    }).then(data => {
-        console.log('resposta do backend:', data);
+        response.json().then(json => {
+            if (json.id) {
+                localStorage.setItem('Token', json.id);
+                console.log('Token salvo com sucesso');
 
-        if (data.id) {
-            localStorage.setItem('Token', data.id);
-            console.log('Token salvo com sucesso');
+            } else {
+                console.warn('Login falhou: token não recebido');
+                alert('Login falhou: token não recebido');
+            }
+        })
 
-        } else {
-            console.warn('Login falhou: token não recebido');
-            alert('Login falhou: token não recebido');
-        }
     }).catch(error => {
-        console.error('erro:', error);
-
         if (error.code == 401) {
             alert('Acesso negado. Verifique suas credencias');
         } else if (error.code == 404) {

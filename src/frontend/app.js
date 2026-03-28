@@ -23,37 +23,35 @@ form.addEventListener('submit', function(event) {
             password: senha,
             url: nd_url
         })
-    })
-        .then(response => {
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            return response.json();
-        })
-        .then(data => {
-            console.log('resposta do backend:', data);
+    }).then(response => {
+        if (!response.ok) {
+            console.warn("Throwing error")
+            const error = new Error(`HTTP ${response.status}`);
+            error.code = response.status;
+            error.message = response.json();
 
-            if (data.token) {
-                localStorage.setItem('Token', data.token);
-                console.log('Token salvo com sucesso');
+            throw error;
+        }
+    }).then(data => {
+        console.log('resposta do backend:', data);
 
-                fetch(server_url + '/rota-protegida', {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': data.token
-                    }
-                })
-                    .then(response => {
-                        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                        return response.json();
-                    })
-                    .then(data => console.log('rota protegida:', data))
-                    .catch(error => console.error('erro na rota protegida:', error));
-            } else {
-                console.warn('Login falhou: token não recebido');
-                alert('Login falhou. Verifique suas credenciais.');
-            }
-        })
-        .catch(error => {
-            console.error('erro:', error);
-            alert('Erro ao conectar com o servidor.');
-        });
+        if (data.id) {
+            localStorage.setItem('Token', data.id);
+            console.log('Token salvo com sucesso');
+
+        } else {
+            console.warn('Login falhou: token não recebido');
+            alert('Login falhou: token não recebido');
+        }
+    }).catch(error => {
+        console.error('erro:', error);
+
+        if (error.code == 401) {
+            alert('Acesso negado. Verifique suas credencias');
+        } else if (error.code == 404) {
+            alert('Servidor Navidrome não encontrado');
+        } else {
+            alert('Servidor retornou um erro');
+        }
+    });
 });

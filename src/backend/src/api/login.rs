@@ -18,6 +18,8 @@ pub async fn build_user_track_hashmap(scrobbles: &Vec<Scrobble>, session: &mut S
 
     for scrobble in scrobbles {
         if scrobble.user_id == session.user_id {
+            if result.contains_key(&scrobble.media_file_id) {continue;}
+
             let song = session.song(&scrobble.media_file_id).await;
             if let Err(_) = song {continue;}
 

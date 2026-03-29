@@ -91,11 +91,7 @@ pub async fn login(
     State(state): State<ApiState>,
     Json(login_request): Json<LoginRequest>
 ) -> (StatusCode, Json<serde_json::Value>) {
-    let url = &login_request.url;
-    let username = &login_request.username;
-    let password = &login_request.password;
-
-    let navidrome_session = Session::new(url, username, password).await;
+    let navidrome_session = Session::new(login_request).await;
 
     if let Err(e) = navidrome_session {
         if let Some(s) = e.status() {

@@ -4,6 +4,8 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use serde_json;
 
+use crate::api::login::LoginRequest;
+
 #[allow(unused)]
 pub struct Session {
     pub user_id: String,
@@ -19,15 +21,15 @@ struct LoginResponse {
 }
 
 impl Session {
-    pub async fn new(url: &str, username: &str, password: &str) -> Result<Self, reqwest::Error> {
-        let client = reqwest::Client::new();
+    pub async fn new(login_request: LoginRequest) -> Result<Self, reqwest::Error> {
+        let client = reqwest::Client::builder().tls_danger_accept_invalid_certs(true).build()?;
 
         let mut body = HashMap::new();
-        body.insert("username", username);
-        body.insert("password", password);
+        body.insert("username", login_request.username);
+        body.insert("password", login_request.password);
 
         let response = client
-            .post(format!("{}/auth/login", url))
+            .post(format!("{}/auth/login", login_request.url))
             .json(&body)
             .send()
             .await?
@@ -47,7 +49,7 @@ impl Session {
             .unwrap();
 
         return Ok(Self {
-            url: url.to_string(),
+            url: login_request.url.to_string(),
             user_id: login_response.id,
             client: client,
             token: login_response.token,

@@ -13,6 +13,13 @@ use std::{sync::Arc};
 use rusqlite::{Connection, OpenFlags};
 use tower_http::cors::{Any, CorsLayer};
 use axum::{Router, routing::{get, post}};
+use clap::{Parser};
+
+#[derive(Parser, Debug)]
+struct Args {
+    #[arg(short, long)]
+    db_location: String
+}
 
 async fn start_backend(state: ApiState) {
     let cors = CorsLayer::new()
@@ -33,9 +40,11 @@ async fn start_backend(state: ApiState) {
 
 #[tokio::main]
 async fn main() {
+    let args = Args::parse();
+
     // Opening database
     let db = Connection::open_with_flags(
-        "../../navidrome.db",
+        args.db_location,
         OpenFlags::SQLITE_OPEN_READ_ONLY
     ).expect("Failed to open database");
 

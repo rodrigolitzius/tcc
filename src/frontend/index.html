@@ -1,3 +1,6 @@
+// tive que mudar tudo pq tava quebrando e o site tava uma feiura, tive que fazer umas alterações pra fica bonito
+// quando você coloca Login-card o css procura por login-card e não acha, aí ignora tudo. mesma coisa com Form-group. css é chato com maiúscula/minúscula
+o outro problema feio foi o .right tando dentro do .left, aí a página nunca ia ficar em duas colunas porque tava tudo empilhado dentro do mesmo bloco
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -8,49 +11,50 @@
     <title>Login</title>
 </head>
 <body>
-<div class="container">
-    <div class="card">
-        <div class="left">
+    <div class="container">
+        <div class="login-card">          
+            <div class="left">
+                <h1>Login</h1>
+                                          
+                <p style="color:#94a3b8; margin-bottom:20px;">Conecte-se ao seu navidrone</p>
 
-    <h1>Login da conta</h1>
-    <hr>
-    <p>Adicionar login abaixo:</p>
+                <form id="loginform">     
 
-    <form action="/site-simples/" method="post", id="loginform">
+                    <div class="form-group">  
+                        <label for="server-url">backend-url</label>
+                        <input type="url" id="server-url" placeholder="Insira a URL do backend" required>
+                    </div>
 
-        <div>
-            <label for="Server URL">Server URL:</label>
-            <input type="url" id="server-url" name="url">
+                    <div class="form-group">   
+                        <label for="navidrome-url">Navidrome URL:</label>
+                        <input type="url" id="navidrome-url" placeholder="http://seulocalhost.com" required>
+                    </div>
+
+                    <div class="form-group">   
+                        <label for="nome">Usuario</label>
+                        <input type="text" id="nome" placeholder="Digite seu nome de usuário" required>
+                    </div>
+
+                    <div class="form-group">   
+                        <label for="senha">Senha</label>
+                        <input type="password" id="senha" placeholder="Digite sua senha" required>
+                    </div>
+
+                    <div>
+                        <button type="submit" id="login-btn" class="btn-primary" style="width:100%; margin-top:8px;">Entrar</button>
+                    </div>
+
+                </form>
+            </div>
+
+            <div class="right">           
+                <h2>Navdrome</h2>
+                <p>Music hub</p>
+                <img src="tsukasa-dance.gif" alt="Welcome" width="180">
+            </div>
+
         </div>
-
-        <div>
-            <label for="Navidrome URL">Navidrome URL:</label>
-            <input type="url" id="navidrome-url" name="url">
-        </div>
-
-        <div>
-            <label for="nome">Nome:</label>
-            <input type="text" id="nome" name="nome">
-        </div>
-
-        <div>
-            <label for="senha">Senha:</label>
-            <input type="password" id="senha" name="senha">
-        </div>
-
-        <div>
-            <button type="submit">Entrar</button>
-        </div>
-
-    </form>
-    <div class="right">
-        <h2>bem-vindo</h2>
-        <p>Faça o login</p>
-    </div>
-
-    <img src="tsukasa-dance.gif", width="200">
-</div>
-<script src="app.js"></script> <!--saporra linka na outra pasta-->
-
+    </div>                                
+    <script src="app.js"></script>        
 </body>
 </html>

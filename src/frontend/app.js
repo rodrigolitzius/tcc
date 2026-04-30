@@ -1,4 +1,9 @@
 const form = document.getElementById('loginform');
+const btn = document.getElementById('login-btn');
+
+if (localStorage.getItem('Token')) {
+    window.location.href = 'hub.html';
+}
 
 form.addEventListener('submit', function(event) {
     event.preventDefault();
@@ -13,6 +18,10 @@ form.addEventListener('submit', function(event) {
         return;
     }
 
+    const textooriginal = btn.textContent;
+    btn.textContent = 'Entrando...';
+    btn.disabled = true;
+
     fetch(server_url + '/login', {
         method: 'POST',
         headers: {
@@ -23,15 +32,17 @@ form.addEventListener('submit', function(event) {
             password: senha,
             url: nd_url
         })
-    }).then((response) => {
+    }).then(function(response) {
         if (!response.ok) {
+             return response.json().catch(() => ({})).then(function(data) {
             const error = new Error(`HTTP ${response.status}`);
             error.code = response.status;
-            error.message = response.json();
+            
 
             throw error;
+        });
         }
-        response.json().then(json => {
+        return response.json().then(function(json) {
             if (json.id) {
                 localStorage.setItem('Token', json.id);
                 console.log('Token salvo com sucesso');
@@ -42,7 +53,7 @@ form.addEventListener('submit', function(event) {
             }
         })
 
-    }).catch(error => {
+    }).catch(function(error) {
         if (error.code == 401) {
             alert('Acesso negado. Verifique suas credencias');
         } else if (error.code == 404) {
@@ -50,5 +61,8 @@ form.addEventListener('submit', function(event) {
         } else {
             alert('Servidor retornou um erro');
         }
+    }).finally(function() {
+        btn.textContent = textooriginal;
+        btn.disabled = false;
     });
 });

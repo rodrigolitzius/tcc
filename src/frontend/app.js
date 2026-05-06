@@ -1,10 +1,6 @@
 const form = document.getElementById('loginform');
 const btn = document.getElementById('login-btn');
 
-if (localStorage.getItem('Token')) {
-    window.location.href = 'hub.html';
-}
-
 form.addEventListener('submit', function(event) {
     event.preventDefault();
 
@@ -14,7 +10,7 @@ form.addEventListener('submit', function(event) {
     const senha = document.getElementById('senha').value;
 
     if (!nd_url || !server_url || !nome || !senha) {
-        console.error('Preencha todos os campos');
+        alert('Preencha todos os campos');
         return;
     }
 
@@ -24,43 +20,27 @@ form.addEventListener('submit', function(event) {
 
     fetch(server_url + '/login', {
         method: 'POST',
-        headers: {
-            'content-type': 'application/json'
-        },
-        body: JSON.stringify({
-            username: nome,
-            password: senha,
-            url: nd_url
-        })
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ username: nome, password: senha, url: nd_url })
     }).then(function(response) {
         if (!response.ok) {
-             return response.json().catch(() => ({})).then(function(data) {
-            const error = new Error(`HTTP ${response.status}`);
+            const error = new Error('HTTP ' + response.status);
             error.code = response.status;
-            
-
             throw error;
-        });
         }
         return response.json().then(function(json) {
             if (json.id) {
                 localStorage.setItem('Token', json.id);
-                console.log('Token salvo com sucesso');
-
+                localStorage.setItem('server_url', server_url);
+                window.location.replace('hub.html');
             } else {
-                console.warn('Login falhou: token não recebido');
                 alert('Login falhou: token não recebido');
             }
-        })
-
+        });
     }).catch(function(error) {
-        if (error.code == 401) {
-            alert('Acesso negado. Verifique suas credencias');
-        } else if (error.code == 404) {
-            alert('Servidor Navidrome não encontrado');
-        } else {
-            alert('Servidor retornou um erro');
-        }
+        if (error.code == 401) alert('Acesso negado. Verifique suas credenciais');
+        else if (error.code == 404) alert('Servidor Navidrome não encontrado');
+        else alert('Servidor retornou um erro: ' + error.message);
     }).finally(function() {
         btn.textContent = textooriginal;
         btn.disabled = false;

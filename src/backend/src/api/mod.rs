@@ -14,6 +14,7 @@ use crate::{
 pub struct LoginSession {
     pub navidrome_session: Session,
     pub uuid: uuid::Uuid,
+    pub scrobbles: Vec<Scrobble>,
     pub tracks_hashmap: HashMap<String, serde_json::Value>,
 }
 

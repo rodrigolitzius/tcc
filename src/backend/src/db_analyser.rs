@@ -1,5 +1,6 @@
 use rusqlite::Row;
 
+#[derive(Clone)]
 #[allow(unused)]
 pub struct Scrobble {
     pub media_file_id: String,

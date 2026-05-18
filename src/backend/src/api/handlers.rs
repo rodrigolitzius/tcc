@@ -8,9 +8,9 @@ use serde::Deserialize;
 use uuid::Uuid;
 use std::{collections::HashMap, str::FromStr};
 
-use crate::api::{
-    ApiState, LoginSession, response::{*}
-};
+use crate::{api::{
+    ApiState, LoginSession, response::*
+}, db_analyser::Scrobble};
 
 use crate::{
     navidrome::{Session, NavidromeSessionError},
@@ -62,7 +62,7 @@ pub async fn recent(
     State(state): State<ApiState>,
     Query(query): Query<HashMap<String, String>>,
     auth: Auth
-) -> Result<String, ApiError> {
+) -> Result<Json<serde_json::Value>, ApiError> {
     let mut limit = get_param_default(&query, "limit", 0) as usize;
     let offset = get_param_default(&query, "offset", 0) as usize;
 
@@ -78,22 +78,21 @@ pub async fn recent(
         }
     };
 
-    let mut result = String::new();
-    for scrobble in state.scrobbles.iter().skip(offset).take(limit) {
-        if !(scrobble.user_id == session.navidrome_session.user_id) {continue;}
-
+    let mut result: Vec<serde_json::Value> = Vec::new();
+    for scrobble in session.scrobbles.iter().skip(offset).take(limit) {
         let music_info = match session.tracks_hashmap.get(&scrobble.media_file_id) {
             Some(v) => v,
             None => {continue;}
         };
 
-        result.push_str(format!("{} - {}\n",
-            music_info["title"],
-            music_info["artist"],
-        ).as_str());
+        result.push(json!({
+            "title": music_info["title"],
+            "artist": music_info["artist"],
+            "album": music_info["album"],
+        }));
     }
 
-    return Ok(result);
+    return Ok(Json(serde_json::to_value(result).unwrap()));
 }
 
 pub async fn login(
@@ -119,13 +118,19 @@ pub async fn login(
         }
     };
 
+    let mut scrobbles: Vec<Scrobble> = Vec::new();
+    for scrobble in state.scrobbles.iter() {
+        if scrobble.user_id != navidrome_session.user_id {continue;}
+
+        scrobbles.push(scrobble.clone());
+    }
+
     // TODO: The build_user_track_hashmap function is SUPER SLOW, and blocks the servers response. Make it go vroom vroom
-    let tracks_hashmap = navidrome_session.build_track_hashmap(&state.scrobbles).await;
+    let tracks_hashmap = navidrome_session.build_track_hashmap(&scrobbles).await;
     let uuid = Uuid::new_v4();
 
-    // let session_id = Uuid::new_v4();
     let login_session = LoginSession {
-        navidrome_session, tracks_hashmap, uuid
+        navidrome_session, tracks_hashmap, uuid, scrobbles
     };
 
     state.sessions.write().await.insert(login_session.uuid, login_session);

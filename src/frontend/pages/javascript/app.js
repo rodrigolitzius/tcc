@@ -32,7 +32,7 @@ form.addEventListener('submit', function(event) {
             if (json.id) {
                 localStorage.setItem('Token', json.id);
                 localStorage.setItem('server_url', server_url);
-                window.location.replace('hub.html');
+                window.location.replace('pages/hub.html');
             } else {
                 alert('Login falhou: token não recebido');
             }

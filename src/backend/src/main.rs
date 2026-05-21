@@ -6,7 +6,7 @@ mod api;
 
 use crate::{
     db_analyser::{Scrobble, build_scrobble},
-    api::{ApiState, handlers::{login, recent}}
+    api::{ApiState, handlers::{login, recent, relay}}
 };
 
 use std::{sync::Arc};
@@ -14,6 +14,8 @@ use rusqlite::{Connection, OpenFlags};
 use tower_http::cors::{Any, CorsLayer};
 use axum::{Router, routing::{get, post}};
 use clap::{Parser};
+
+const APP_NAME: &'static str = "Navalyze";
 
 #[derive(Parser, Debug)]
 struct Args {
@@ -27,9 +29,9 @@ async fn start_backend(state: ApiState) {
         .allow_methods(Any)
         .allow_headers(Any);
 
-    // TODO: Add a route to the logged in user's recently played tracks
     let app = Router::new()
-        .route("/dev/recent", get(recent))
+        .route("/recent", get(recent))
+        .route("/relay/{*tail}", get(relay))
         .route("/login", post(login))
         .layer(cors)
         .with_state(state);

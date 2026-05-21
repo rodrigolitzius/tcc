@@ -1,6 +1,7 @@
 use axum::{
-    extract::{FromRef, FromRequestParts, Json, Query, State},
-    http::StatusCode
+    extract::{FromRef, FromRequestParts, Json, Query, State, Path},
+    http::{StatusCode, HeaderMap, method},
+    body::Bytes
 };
 
 use serde_json::json;
@@ -13,13 +14,14 @@ use crate::{api::{
 }, db_analyser::Scrobble};
 
 use crate::{
-    navidrome::{Session, NavidromeSessionError},
+    navidrome::{NavidromeNativeSession, NavidromeSubsonicSession, NavidromeSessionError},
     util::get_param_default
 };
 
 pub struct Auth{uuid: Uuid}
 
 #[derive(Deserialize)]
+#[derive(Clone)]
 pub struct LoginRequest {
     pub username: String,
     pub password: String,
@@ -99,9 +101,10 @@ pub async fn login(
     State(state): State<ApiState>,
     Json(login_request): Json<LoginRequest>
 ) -> Result<Json<serde_json::Value>, ApiError> {
-    let navidrome_session = Session::new(login_request).await;
+    let navidrome_native = NavidromeNativeSession::new(login_request.clone()).await;
+    let navidrome_subsonic = NavidromeSubsonicSession::new(login_request).await;
 
-    let navidrome_session = match navidrome_session {
+    let navidrome_native = match navidrome_native {
         Ok(v) => v,
         Err(e) => {
             match e {
@@ -109,7 +112,24 @@ pub async fn login(
                     return Err(ApiError::Internal(e2.to_string()))
                 },
                 NavidromeSessionError::Unreachable(e2) => {
-                    return Err(ApiError::LoginNavidromeUnreachable(e2.to_string()));
+                    return Err(ApiError::NavidromeUnreachable(e2.to_string()));
+                },
+                NavidromeSessionError::Unauthorized => {
+                    return Err(ApiError::Unauthorized("Incorrect credentials".into()));
+                }
+            }
+        }
+    };
+
+    let navidrome_subsonic = match navidrome_subsonic {
+        Ok(v) => v,
+        Err(e) => {
+            match e {
+                NavidromeSessionError::Reqwest(e2) => {
+                    return Err(ApiError::Internal(e2.to_string()))
+                },
+                NavidromeSessionError::Unreachable(e2) => {
+                    return Err(ApiError::NavidromeUnreachable(e2.to_string()));
                 },
                 NavidromeSessionError::Unauthorized => {
                     return Err(ApiError::Unauthorized("Incorrect credentials".into()));
@@ -120,20 +140,64 @@ pub async fn login(
 
     let mut scrobbles: Vec<Scrobble> = Vec::new();
     for scrobble in state.scrobbles.iter() {
-        if scrobble.user_id != navidrome_session.user_id {continue;}
+        if scrobble.user_id != navidrome_native.user_id {continue;}
 
         scrobbles.push(scrobble.clone());
     }
 
     // TODO: The build_user_track_hashmap function is SUPER SLOW, and blocks the servers response. Make it go vroom vroom
-    let tracks_hashmap = navidrome_session.build_track_hashmap(&scrobbles).await;
+    let tracks_hashmap = navidrome_native.build_track_hashmap(&scrobbles).await;
     let uuid = Uuid::new_v4();
 
     let login_session = LoginSession {
-        navidrome_session, tracks_hashmap, uuid, scrobbles
+        navidrome_native, navidrome_subsonic, tracks_hashmap, uuid, scrobbles
     };
 
     state.sessions.write().await.insert(login_session.uuid, login_session);
 
     return Ok(Json(json!({"id": uuid})));
 }
+
+pub async fn relay(
+    State(state): State<ApiState>,
+    Path(tail): Path<String>,
+    method: method::Method,
+    headers: HeaderMap,
+    auth: Auth,
+    body: Bytes,
+) -> Result<(StatusCode, HeaderMap, Bytes), ApiError> {
+    let session = state.sessions.read().await;
+    let session = match session.get(&auth.uuid) {
+        Some(v) => v,
+        None => {
+            return Err(ApiError::Internal("Could not find token".into()));
+        }
+    };
+
+    let url = format!("{}/rest/{}", session.navidrome_native.url, tail);
+    let response = session.navidrome_subsonic.client
+        .request(method, url)
+        .query(&session.navidrome_subsonic.default_params)
+        .headers(headers)
+        .body(body)
+        .send()
+        .await;
+
+    let response = match response {
+        Ok(v) => v,
+        Err(_) => {
+            return Err(ApiError::NavidromeUnreachable("Failed to reach Navidrome".into()));
+        }
+    };
+
+    let result = (
+        response.status(),
+        response.headers().clone(),
+        response.bytes().await.unwrap()
+    );
+
+    return Ok(result)
+}
+
+// TODO: Add a function to get a session from the state.
+// I didn't do it yet because it turned out to be harder than i thought

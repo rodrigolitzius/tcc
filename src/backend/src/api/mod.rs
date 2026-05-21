@@ -6,13 +6,13 @@ use tokio::sync::RwLock;
 use uuid::Uuid;
 
 use crate::{
-    navidrome::{Session},
-    db_analyser::Scrobble
+    db_analyser::Scrobble, navidrome::{NavidromeNativeSession, NavidromeSubsonicSession}
 };
 
 #[allow(unused)]
 pub struct LoginSession {
-    pub navidrome_session: Session,
+    pub navidrome_native: NavidromeNativeSession,
+    pub navidrome_subsonic: NavidromeSubsonicSession,
     pub uuid: uuid::Uuid,
     pub scrobbles: Vec<Scrobble>,
     pub tracks_hashmap: HashMap<String, serde_json::Value>,

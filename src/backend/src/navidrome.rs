@@ -1,17 +1,27 @@
 use axum::http::{HeaderMap, HeaderValue};
-use reqwest;
+use rand::RngExt;
+use reqwest::{self, Method};
 use serde::Deserialize;
 use std::collections::HashMap;
+use rand::{distr::Alphanumeric};
 use serde_json;
 
 use crate::api::handlers::LoginRequest;
 use crate::db_analyser::Scrobble;
 
 #[allow(unused)]
-pub struct Session {
+pub struct NavidromeNativeSession {
     pub user_id: String,
     pub url: String,
     pub client: reqwest::Client,
+    pub token: String
+}
+
+#[allow(unused)]
+pub struct NavidromeSubsonicSession {
+    pub default_params: Vec<(String, String)>,
+    pub client: reqwest::Client,
+    pub salt: String,
     pub token: String
 }
 
@@ -27,19 +37,45 @@ pub enum NavidromeSessionError {
     Unauthorized,
 }
 
-impl Session {
+// TODO: Not a great way to do it. Whoever is reading the login request
+// should NOT have to call sanitize before reading
+impl LoginRequest {
+    fn sanitize(self) -> Self {
+        return LoginRequest {
+            username: self.username,
+            password: self.password,
+            url: self.url.trim_end_matches('/').to_string()
+        };
+    }
+}
+
+pub fn validate_login_response(response: Result<reqwest::Response, reqwest::Error>) -> Result<reqwest::Response, NavidromeSessionError> {
+    let response = match response {
+        Ok(v) => v,
+        Err(e) => {
+            return Err(NavidromeSessionError::Unreachable(e));
+        }
+    };
+
+    let response = match response.error_for_status() {
+        Ok(v) => v,
+        Err(_) => {
+            return Err(NavidromeSessionError::Unauthorized);
+        }
+    };
+
+    return Ok(response);
+}
+
+impl NavidromeNativeSession {
     pub async fn new(login_request: LoginRequest) -> Result<Self, NavidromeSessionError> {
+        let login_request = login_request.sanitize();
+
         let client = match reqwest::Client::builder().tls_danger_accept_invalid_certs(true).build() {
             Ok(v) => v,
             Err(e) => {
                 return Err(NavidromeSessionError::Reqwest(e));
             }
-        };
-
-        let login_request = LoginRequest {
-            username: login_request.username,
-            password: login_request.password,
-            url: login_request.url.trim_end_matches('/').to_string()
         };
 
         let mut body = HashMap::new();
@@ -52,19 +88,7 @@ impl Session {
             .send()
             .await;
 
-        let response = match response {
-            Ok(v) => v,
-            Err(e) => {
-                return Err(NavidromeSessionError::Unreachable(e));
-            }
-        };
-
-        let response = match response.error_for_status() {
-            Ok(v) => v,
-            Err(_) => {
-                return Err(NavidromeSessionError::Unauthorized);
-            }
-        };
+        let response = validate_login_response(response)?;
 
         let login_response: LoginResponse = response.json().await.expect("Required fields are missing from Navidrome's response");
 
@@ -112,5 +136,44 @@ impl Session {
         }
 
         return result;
+    }
+}
+
+impl NavidromeSubsonicSession {
+    // TODO: Actually test if this fails if the login request has invalid credentials
+    pub async fn new(login_request: LoginRequest) -> Result<Self, NavidromeSessionError> {
+        let login_request = login_request.sanitize();
+
+        let salt: String = rand::rng()
+            .sample_iter(Alphanumeric)
+            .take(8)
+            .map(char::from)
+            .collect();
+
+        let hash = format!("{:x}", md5::compute(format!("{}{}", login_request.password, salt)));
+
+        let mut default_params: Vec<(String, String)> = Vec::new();
+        default_params.push(("u".to_string(), login_request.username));
+        default_params.push(("s".to_string(), salt.clone()));
+        default_params.push(("t".to_string(), hash.clone()));
+        default_params.push(("c".to_string(), crate::APP_NAME.to_string()));
+        default_params.push(("v".to_string(), "1.8.0".to_string()));
+
+        let response = reqwest::Client::new()
+            .request(Method::GET, format!("{}/rest/ping", login_request.url))
+            .query(&default_params)
+            .send()
+            .await;
+
+        let _response = validate_login_response(response)?;
+
+        let result = Self {
+            default_params: default_params,
+            client: reqwest::Client::new(),
+            salt: salt,
+            token: hash
+        };
+
+        return Ok(result)
     }
 }

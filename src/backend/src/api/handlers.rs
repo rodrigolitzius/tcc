@@ -14,7 +14,7 @@ use crate::{api::{
 }, db_analyser::Scrobble};
 
 use crate::{
-    navidrome::{NavidromeNativeSession, NavidromeSubsonicSession, NavidromeSessionError},
+    navidrome::{NavidromeNativeSession, NavidromeSubsonicSession},
     util::get_param_default
 };
 
@@ -120,42 +120,8 @@ pub async fn login(
 ) -> Result<Json<serde_json::Value>, ApiError> {
     let login_request: LoginRequest = login_request.into();
 
-    let navidrome_native = NavidromeNativeSession::new(login_request.clone()).await;
-    let navidrome_subsonic = NavidromeSubsonicSession::new(login_request).await;
-
-    let navidrome_native = match navidrome_native {
-        Ok(v) => v,
-        Err(e) => {
-            match e {
-                NavidromeSessionError::Reqwest(e2) => {
-                    return Err(ApiError::Internal(e2.to_string()))
-                },
-                NavidromeSessionError::Unreachable(e2) => {
-                    return Err(ApiError::NavidromeUnreachable(e2.to_string()));
-                },
-                NavidromeSessionError::Unauthorized => {
-                    return Err(ApiError::Unauthorized("Incorrect credentials".into()));
-                }
-            }
-        }
-    };
-
-    let navidrome_subsonic = match navidrome_subsonic {
-        Ok(v) => v,
-        Err(e) => {
-            match e {
-                NavidromeSessionError::Reqwest(e2) => {
-                    return Err(ApiError::Internal(e2.to_string()))
-                },
-                NavidromeSessionError::Unreachable(e2) => {
-                    return Err(ApiError::NavidromeUnreachable(e2.to_string()));
-                },
-                NavidromeSessionError::Unauthorized => {
-                    return Err(ApiError::Unauthorized("Incorrect credentials".into()));
-                }
-            }
-        }
-    };
+    let navidrome_native = NavidromeNativeSession::new(login_request.clone()).await?;
+    let navidrome_subsonic = NavidromeSubsonicSession::new(login_request).await?;
 
     let mut scrobbles: Vec<Scrobble> = Vec::new();
     for scrobble in state.scrobbles.iter() {

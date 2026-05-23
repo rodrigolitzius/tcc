@@ -7,6 +7,7 @@ use rand::{distr::Alphanumeric};
 use serde_json;
 
 use crate::api::handlers::LoginRequest;
+use crate::api::response::ApiError;
 use crate::db_analyser::Scrobble;
 
 #[allow(unused)]
@@ -35,6 +36,22 @@ pub enum NavidromeSessionError {
     Reqwest(reqwest::Error),
     Unreachable(reqwest::Error),
     Unauthorized,
+}
+
+impl From<NavidromeSessionError> for ApiError {
+    fn from(value: NavidromeSessionError) -> Self {
+        return match value {
+            NavidromeSessionError::Reqwest(e) => ApiError::Internal(
+                format!("Reqwest failed: {}", e.to_string())
+            ),
+            NavidromeSessionError::Unreachable(e) => ApiError::NavidromeUnreachable(
+                format!("Navidrome could not be reached: {}", e.to_string())
+            ),
+            NavidromeSessionError::Unauthorized => ApiError::Unauthorized(
+                "Invalid credentials".into()
+            )
+        }
+    }
 }
 
 pub fn validate_login_response(response: Result<reqwest::Response, reqwest::Error>) -> Result<reqwest::Response, NavidromeSessionError> {

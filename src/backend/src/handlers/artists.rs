@@ -1,16 +1,20 @@
 use crate::{
     handlers::*,
+    navidrome::*,
 };
 
 pub async fn most_played_artists(
     State(state): State<ApiState>,
-    auth: Auth
+    auth: Auth,
+    range: Range<u64>
 ) -> Result<Json<serde_json::Value>, ApiError> {
     let session = get_session_from_uuid(&auth.uuid, &state.sessions).await?;
 
     let mut artist_count: HashMap<String, ArtistCount> = HashMap::new();
 
-    for v in session.scrobbles.iter() {
+    let scrobbles = Scrobble::filter_range(&session.scrobbles, range);
+
+    for v in scrobbles.iter() {
         let song_data = match session.tracks_hashmap.get(&v.media_file_id) {
             Some(v) => v,
             None => continue

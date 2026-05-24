@@ -11,7 +11,7 @@ use rand::RngExt;
 use serde_json;
 
 use crate::handlers::LoginRequest;
-use crate::api::error::*;
+use crate::api::{Range, error::*};
 
 #[allow(unused)]
 pub struct NavidromeNativeSession {
@@ -40,13 +40,27 @@ pub enum NavidromeSessionError {
 pub struct Scrobble {
     pub media_file_id: String,
     pub user_id: String,
-    pub submission_time: i64
+    pub submission_time: u64
 }
 
 #[derive(Deserialize)]
 struct LoginResponse {
     token: String,
     id: String
+}
+
+impl Scrobble {
+    pub fn filter_range(scrobbles: &Vec<Scrobble>, range: Range<u64>) -> Vec<&Scrobble> {
+        let mut refs: Vec<&Scrobble> = Vec::new();
+
+        for scrobble in scrobbles {
+            if range.contains(&scrobble.submission_time) {
+                refs.push(&scrobble);
+            }
+        }
+
+        return refs;
+    }
 }
 
 impl From<NavidromeSessionError> for ApiError {
@@ -91,6 +105,7 @@ pub fn build_scrobble(row: &Row) -> Result<Scrobble, rusqlite::Error> {
     let submission_time: i64 = row.get("submission_time")?;
 
     return Ok(Scrobble {
-        media_file_id, user_id, submission_time
+        media_file_id, user_id,
+        submission_time: submission_time as u64
     });
 }

@@ -5,6 +5,7 @@ pub mod artists;
 
 use std::{str::FromStr, collections::HashMap};
 use tokio::sync::{RwLock, RwLockReadGuard};
+use num_traits::Bounded;
 use serde::Deserialize;
 use serde_json::json;
 use uuid::Uuid;
@@ -17,16 +18,17 @@ use axum::{
 use reqwest::header;
 
 use crate::{
-    api::{ApiState, LoginSession, error::*},
+    api::{ApiState, LoginSession, Range, error::*},
 };
 
 pub struct Auth{uuid: Uuid}
 
+#[allow(unused)]
 #[derive(Deserialize)]
 struct Artist {
     id: String,
     name: String,
-    _missing: bool
+    missing: bool
 }
 
 #[derive(Deserialize)]
@@ -60,6 +62,7 @@ impl From<RawLoginRequest> for LoginRequest {
     }
 }
 
+// TODO: Make this implementation use ApiError
 impl<S> FromRequestParts<S> for Auth
 where
     ApiState: axum::extract::FromRef<S>,
@@ -117,4 +120,30 @@ async fn get_session_from_uuid<'a>(uuid: &Uuid, sessions: &'a RwLock<HashMap<Uui
     };
 
     return Ok(result);
+}
+
+impl<S, T> FromRequestParts<S> for Range<T>
+where
+    S: Send + Sync,
+    T: Bounded + FromStr
+{
+    type Rejection = ApiError;
+    async fn from_request_parts(
+        parts: &mut axum::http::request::Parts,
+        state: &S,
+    ) -> Result<Self, Self::Rejection> {
+        let Query(queries) = match Query::<HashMap<String, String>>::from_request_parts(parts, state).await {
+            Ok(v) => v,
+            Err(_) => return Err(ApiError::BadRequest("Invalid queries".into()))
+        };
+
+        let (start, end) = (
+            get_param_default(&queries, "a", T::min_value()),
+            get_param_default(&queries, "b", T::max_value()),
+        );
+
+        let range = Self {start, end};
+
+        return Ok(range);
+    }
 }

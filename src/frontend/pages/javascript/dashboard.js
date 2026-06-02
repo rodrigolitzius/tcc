@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const lista = document.getElementById('lista-musicas');
 
-    fetch(server_url + '/dev/recent', {
+    fetch(server_url + '/recent', {
         headers: { 'Authorization': token }
     })
         .then(function (r) { return r.json(); })   // recebe json agora rodri

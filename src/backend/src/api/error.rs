@@ -9,7 +9,8 @@ pub enum ApiError {
     // Other
     Internal(String),
     Unauthorized(String),
-    BadRequest(String)
+    BadRequest(String),
+    DatabaseError(String)
 }
 
 impl IntoResponse for ApiError {
@@ -18,7 +19,8 @@ impl IntoResponse for ApiError {
             ApiError::NavidromeUnreachable(msg) => (StatusCode::BAD_REQUEST, msg),
             ApiError::Unauthorized(msg) => (StatusCode::UNAUTHORIZED, msg),
             ApiError::Internal(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg),
-            ApiError::BadRequest(msg) => (StatusCode::BAD_REQUEST, msg)
+            ApiError::BadRequest(msg) => (StatusCode::BAD_REQUEST, msg),
+            ApiError::DatabaseError(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg)
         };
 
         return (

@@ -10,7 +10,7 @@ pub async fn login(
     let login_request: LoginRequest = login_request.into();
 
     let navidrome_native = NavidromeNativeSession::new(login_request.clone()).await?;
-    let navidrome_subsonic = NavidromeSubsonicSession::new(login_request).await?;
+    let navidrome_subsonic = NavidromeSubsonicSession::new(login_request.clone()).await?;
 
     let mut scrobbles: Vec<Scrobble> = Vec::new();
     for scrobble in state.scrobbles.iter() {
@@ -25,6 +25,13 @@ pub async fn login(
 
     let login_session = LoginSession {
         navidrome_native, navidrome_subsonic, tracks_hashmap, uuid, scrobbles
+    };
+
+    match state.storage.db.add_domain(login_request.url) {
+        Ok(v) => v,
+        Err(_) => {
+            return Err(ApiError::DatabaseError("Could not add domain to database".into()));
+        }
     };
 
     state.sessions.write().await.insert(login_session.uuid, login_session);

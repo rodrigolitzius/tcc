@@ -4,7 +4,9 @@ use std::{collections::HashMap, sync::Arc};
 use tokio::sync::RwLock;
 use uuid::Uuid;
 
-use crate::navidrome::{NavidromeNativeSession, NavidromeSubsonicSession, Scrobble, SongData};
+use crate::{
+    mbz::MbzSession, navidrome::{NavidromeNativeSession, NavidromeSubsonicSession, Scrobble, SongData}, sqlite::InternalDB, storage::Storage
+};
 
 #[allow(unused)]
 pub struct LoginSession {
@@ -18,7 +20,8 @@ pub struct LoginSession {
 #[derive(Clone)]
 pub struct ApiState {
     pub scrobbles: Arc<Vec<Scrobble>>,
-    pub sessions: Arc<RwLock<HashMap<Uuid, LoginSession>>>
+    pub sessions: Arc<RwLock<HashMap<Uuid, LoginSession>>>,
+    pub storage: Arc<Storage>
 }
 
 pub struct Range<T> {
@@ -33,11 +36,14 @@ where T: PartialOrd {
     }
 }
 
-impl Default for ApiState {
-    fn default() -> Self {
-        return Self {
-            scrobbles: Arc::new(Vec::new()),
-            sessions: Arc::new(RwLock::new(HashMap::new()))
+impl ApiState {
+    pub fn new(scrobbles: Vec<Scrobble>, mbz: Option<MbzSession>) -> Result<Self, rusqlite::Error> {
+        let result = Self {
+            scrobbles: Arc::new(scrobbles),
+            sessions: Arc::new(RwLock::new(HashMap::new())),
+            storage: Arc::new(Storage::new(InternalDB::new("data.db".into())?, mbz))
         };
+
+        return Ok(result);
     }
 }

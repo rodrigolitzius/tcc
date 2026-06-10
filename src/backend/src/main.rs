@@ -1,11 +1,15 @@
 mod navidrome;
 mod handlers;
 mod api;
+mod mbz;
+mod sqlite;
+mod storage;
 
+use std::str::FromStr;
 use axum::{Router, routing::{get, post}};
 use tower_http::cors::{Any, CorsLayer};
 use rusqlite::{Connection, OpenFlags};
-use std::{sync::Arc};
+use uuid::Uuid;
 use clap::{Parser};
 
 use crate::{
@@ -19,7 +23,10 @@ const APP_NAME: &'static str = "Navalyze";
 #[derive(Parser, Debug)]
 struct Args {
     #[arg(short, long)]
-    db_location: String
+    db_location: String,
+
+    #[arg(short, long)]
+    mbz_token: Option<Uuid>
 }
 
 async fn start_backend(state: ApiState) {
@@ -45,13 +52,13 @@ async fn main() {
     let args = Args::parse();
 
     // Opening database
-    let db = Connection::open_with_flags(
+    let navidrome_db = Connection::open_with_flags(
         args.db_location,
         OpenFlags::SQLITE_OPEN_READ_ONLY
-    ).expect("Failed to open database");
+    ).expect("Failed to open navidrome's database");
 
     // Getting scrobbles
-    let mut stmt = db.prepare("SELECT * FROM scrobbles ORDER BY submission_time DESC").expect("Couldn't prepare SQL query");
+    let mut stmt = navidrome_db.prepare("SELECT * FROM scrobbles ORDER BY submission_time DESC").expect("Couldn't prepare SQL query");
     let rows = stmt.query_and_then([], |row| build_scrobble(row)).expect("query_and_then failed");
 
     let mut scrobbles: Vec<Scrobble> = Vec::new();
@@ -62,9 +69,22 @@ async fn main() {
         }
     }
 
-    let state = ApiState {
-        scrobbles: Arc::new(scrobbles), ..Default::default()
+    let mbz_session = match args.mbz_token {
+        Some(v) => Some(mbz::MbzSession::new(v)),
+        None => None
     };
+
+    let state = ApiState::new(scrobbles, mbz_session).expect("Failed to initialize API state");
+
+    // // This is the code i used for testing mbz integration
+    // let artist = state.storage.get_artist(
+    //     1, uuid::Uuid::from_str("a8c6ef99-6a24-4c68-83e5-35aa1eca32fa").unwrap()
+    // ).await.unwrap();
+
+    // match artist {
+    //     Some(v) => println!("{:?}", v),
+    //     None => println!("No artists")
+    // }
 
     start_backend(state).await;
 }

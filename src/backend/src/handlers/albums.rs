@@ -9,7 +9,7 @@ struct AlbumStat {
     artist: String,
     id: String,
     plays: u64,
-    played_min: f64
+    played_hours: f64
 }
 
 pub async fn most_played_albums(
@@ -30,12 +30,12 @@ pub async fn most_played_albums(
             None => continue
         };
 
-        let duration = song_data.duration;
+        let duration_hour = song_data.duration / (60.0*60.0);
 
         match album_stat.get_mut(&song_data.album_id.clone()) {
             Some(v) => {
                 (*v).plays += 1;
-                (*v).played_min += duration
+                (*v).played_hours += duration_hour
             },
             None => {
                 album_stat.insert(
@@ -44,8 +44,8 @@ pub async fn most_played_albums(
                         name: song_data.album.clone(),
                         artist: song_data.artist.clone(),
                         id: song_data.album_id.clone(),
-                        plays: 1, played_min:
-                        duration
+                        plays: 1,
+                        played_hours: duration_hour
                     }
                 );
             }
@@ -59,7 +59,7 @@ pub async fn most_played_albums(
 
     let mut all_albums: Vec<AlbumStat> = album_stat.into_values().collect();
 
-    all_albums.sort_by(|a, b| { b.played_min.total_cmp(&a.played_min)});
+    all_albums.sort_by(|a, b| { b.played_hours.total_cmp(&a.played_hours)});
     let select = all_albums[..limit].to_vec();
 
     return Ok(Json(serde_json::to_value(select).unwrap()));

@@ -29,7 +29,7 @@ struct ArtistStat {
     name: String,
     id: String,
     plays: u64,
-    played_min: f64
+    played_hours: f64
 }
 
 #[derive(Deserialize)]

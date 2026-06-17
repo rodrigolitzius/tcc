@@ -21,18 +21,23 @@ pub async fn most_played_artists(
             None => continue
         };
 
-        let duration = song_data.duration;
+        let duration_hour = song_data.duration / (60.0*60.0);
 
         for artist in song_data.participants.artists.iter() {
             match artist_stat.get_mut(&artist.id) {
                 Some(v) => {
                     (*v).plays += 1;
-                    (*v).played_min += duration
+                    (*v).played_hours += duration_hour
                 },
                 None => {
                     artist_stat.insert(
                         artist.id.clone(),
-                        ArtistStat {id: artist.id.clone(), name: artist.name.clone(), plays: 1, played_min: duration}
+                        ArtistStat {
+                            id: artist.id.clone(),
+                            name: artist.name.clone(),
+                            plays: 1,
+                            played_hours: duration_hour
+                        }
                     );
                 }
             };
@@ -46,7 +51,7 @@ pub async fn most_played_artists(
 
     let mut all_artists: Vec<ArtistStat> = artist_stat.into_values().collect();
 
-    all_artists.sort_by(|a, b| { b.played_min.total_cmp(&a.played_min)});
+    all_artists.sort_by(|a, b| { b.played_hours.total_cmp(&a.played_hours)});
     let select = all_artists[..limit].to_vec();
 
     return Ok(Json(serde_json::to_value(select).unwrap()));

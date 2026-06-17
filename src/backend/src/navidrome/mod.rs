@@ -55,6 +55,8 @@ pub struct SongData {
     pub title: String,
     pub artist: String,
     pub album: String,
+    pub album_artist: String,
+    pub album_id: String,
     pub duration: f64,
     pub participants: Participants
 }

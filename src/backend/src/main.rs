@@ -5,7 +5,6 @@ mod mbz;
 mod sqlite;
 mod storage;
 
-use std::str::FromStr;
 use axum::{Router, routing::{get, post}};
 use tower_http::cors::{Any, CorsLayer};
 use rusqlite::{Connection, OpenFlags};
@@ -13,7 +12,7 @@ use uuid::Uuid;
 use clap::{Parser};
 
 use crate::{
-    handlers::{login::*, recent::*, relay::*, artists::*},
+    handlers::{login::*, recent::*, relay::*, artists::*, albums::*},
     navidrome::{Scrobble, build_scrobble},
     api::{ApiState}
 };
@@ -39,6 +38,7 @@ async fn start_backend(state: ApiState) {
         .route("/recent", get(recent))
         .route("/relay/{*tail}", get(relay))
         .route("/most-played/artists", get(most_played_artists))
+        .route("/most-played/albums", get(most_played_albums))
         .route("/login", post(login))
         .layer(cors)
         .with_state(state);

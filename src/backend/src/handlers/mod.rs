@@ -2,6 +2,7 @@ pub mod login;
 pub mod recent;
 pub mod relay;
 pub mod artists;
+pub mod albums;
 
 use std::{str::FromStr, collections::HashMap};
 use tokio::sync::{RwLock, RwLockReadGuard};

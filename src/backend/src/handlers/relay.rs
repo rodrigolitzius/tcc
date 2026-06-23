@@ -5,7 +5,7 @@ pub async fn relay(
     State(state): State<ApiState>,
     Path(tail): Path<String>,
     method: Method,
-    headers: HeaderMap,
+    mut headers: HeaderMap,
     auth: Auth,
     body: Bytes,
 ) -> Result<(StatusCode, HeaderMap, Bytes), ApiError> {
@@ -17,6 +17,8 @@ pub async fn relay(
     }
 
     let url = format!("{}/rest/{}", session.navidrome_native.url, tail);
+
+    headers.remove(header::HOST);
 
     let response = session.navidrome_subsonic.client
         .request(method, url)

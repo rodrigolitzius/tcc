@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     document.getElementById('back-btn').addEventListener('click', function () {
-        window.location.replace('../hub.html');
+        window.location.replace('../pages/hub.html');
     });
 
     document.getElementById('logout-btn').addEventListener('click', function () {

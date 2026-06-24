@@ -505,18 +505,17 @@ body::after {
 
 .top-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 16px;
 }
 
 /* card base — albuns e faixas */
 .top-card {
     position: relative;
-    border-radius: 16px;
+    border-radius: 12px;
     overflow: hidden;
     aspect-ratio: 1 / 1;
     background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.08);
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;

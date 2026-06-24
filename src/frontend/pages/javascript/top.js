@@ -153,7 +153,7 @@ document.addEventListener('DOMContentLoaded', function () {
     function carregaArtistas() {
         const grid = document.getElementById('grid-artistas');
 
-        fetch(server_url + '/most-played/artists?limit=10', {
+        fetch(server_url + '/most-played/artists?limit=9', {
             headers: { 'Authorization': token }
         })
             .then(function (r) {
@@ -176,13 +176,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     grid.appendChild(card);
                     aplicaFotoArtista(card, artista.id);
                 });
-
-                // ultimo card preenche espaco restante na linha
-                const cards = grid.querySelectorAll('.top-card');
-                const ultimo = cards[cards.length - 1];
-                if (ultimo && !ultimo.classList.contains('destaque')) {
-                    ultimo.style.gridColumn = '2 / -1';
-                }
             })
             .catch(function (err) {
                 grid.innerHTML = '<p style="color:#f87171;">Erro: ' + err.message + '</p>';

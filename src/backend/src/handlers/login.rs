@@ -19,8 +19,7 @@ pub async fn login(
         scrobbles.push(scrobble.clone());
     }
 
-    // TODO: The build_user_track_hashmap function is SUPER SLOW, and blocks the servers response. Make it go vroom vroom
-    let tracks_hashmap = navidrome_native.build_track_hashmap(&scrobbles).await;
+    let tracks_hashmap = navidrome_native.build_track_hashmap(&scrobbles).await?;
     let uuid = Uuid::new_v4();
 
     let login_session = LoginSession {

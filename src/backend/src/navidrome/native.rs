@@ -1,3 +1,5 @@
+use serde::de::Error;
+
 use crate::{navidrome::*};
 
 impl NavidromeNativeSession {
@@ -33,6 +35,7 @@ impl NavidromeNativeSession {
         );
 
         let client = Client::builder()
+            .tls_danger_accept_invalid_certs(true)
             .default_headers(default_headers)
             .build()
             .unwrap();
@@ -45,29 +48,38 @@ impl NavidromeNativeSession {
         });
     }
 
-    pub async fn song(self: &Self, id: &str) -> Result<SongData, reqwest::Error> {
-        let response = self.client.get(format!("{}/api/song/{}", self.url, id))
+    pub async fn build_track_hashmap(&self, scrobbles: &Vec<Scrobble>) -> Result<HashMap<String, SongData>, NavidromeSessionError> {
+        let url = format!("{}/api/song/", self.url);
+
+        let mut queries: Vec<(String, String)> = Vec::new();
+        queries.push(("_start".into(), "0".into()));
+        queries.push(("_end".into(), "-1".into()));
+
+        let response = self.client
+            .get(&url)
             .send()
-            .await?
-            .error_for_status()?;
+            .await;
 
-        let json: SongData = response.json::<SongData>().await?;
+        let response = validate_reqwest_response(response)?;
+        let response = response.json::<serde_json::Value>().await?;
+        let response = response.as_array().ok_or(
+            NavidromeSessionError::ParseJson(
+                serde_json::Error::missing_field("The response from /api/song is not an array")
+            )
+        )?;
 
-        return Ok(json);
-    }
+        let media_file_ids: Vec<&String> = scrobbles.iter().map(|s| {&s.media_file_id}).collect();
 
-    pub async fn build_track_hashmap(&self, scrobbles: &Vec<Scrobble>) -> HashMap<String, SongData> {
         let mut result = HashMap::new();
 
-        for scrobble in scrobbles {
-            if result.contains_key(&scrobble.media_file_id) {continue;}
+        for song_data in response {
+            let song_data = serde_json::from_value::<SongData>(song_data.clone())?;
 
-            let song = self.song(&scrobble.media_file_id).await;
-            if let Err(_) = song {continue;}
-
-            result.insert(scrobble.media_file_id.clone(), song.unwrap());
+            if media_file_ids.contains(&&song_data.id) {
+                result.insert(song_data.id.clone(), song_data);
+            }
         }
 
-        return result;
+        return Ok(result);
     }
 }

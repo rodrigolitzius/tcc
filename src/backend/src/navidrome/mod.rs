@@ -133,6 +133,12 @@ impl From<serde_json::Error> for NavidromeSessionError {
     }
 }
 
+impl From<reqwest::Error> for NavidromeSessionError {
+    fn from(value: reqwest::Error) -> Self {
+        return Self::Reqwest(value);
+    }
+}
+
 pub fn validate_reqwest_response(response: Result<reqwest::Response, reqwest::Error>) -> Result<reqwest::Response, NavidromeSessionError> {
     let response = match response {
         Ok(v) => v,

@@ -21,18 +21,30 @@ impl NavidromeSubsonicSession {
         default_params.push(("v".to_string(), "1.8.0".to_string()));
         default_params.push(("f".to_string(), "json".to_string()));
 
-        let response = reqwest::Client::new()
-            .request(Method::GET, format!("{}/rest/ping", login_request.url))
+        let url = format!("{}/rest/ping", login_request.url);
+        println!("{url}");
+
+        let client = match Client::builder().tls_danger_accept_invalid_certs(true).build() {
+            Ok(v) => v,
+            Err(e) => {
+                return Err(NavidromeSessionError::Reqwest(e));
+            }
+        };
+
+        let response = client
+            .request(Method::GET, url)
             .query(&default_params)
             .send()
             .await;
+
+        println!("Got response");
 
         let _response = validate_reqwest_response(response)?;
 
         let result = Self {
             default_params: default_params,
             url: login_request.url,
-            client: reqwest::Client::new(),
+            client: client,
             salt: salt,
             token: hash
         };

@@ -61,11 +61,9 @@ impl NavidromeNativeSession {
             .await;
 
         let response = validate_reqwest_response(response)?;
-        let response = response.json::<serde_json::Value>().await?;
-        let response = response.as_array().ok_or(
-            NavidromeSessionError::ParseJson(
-                serde_json::Error::missing_field("The response from /api/song is not an array")
-            )
+
+        let response = response.json::<Vec<SongData>>().await.map_err(|e|
+            NavidromeSessionError::Reqwest(e)
         )?;
 
         let media_file_ids: Vec<&String> = scrobbles.iter().map(|s| {&s.media_file_id}).collect();
@@ -73,8 +71,6 @@ impl NavidromeNativeSession {
         let mut result = HashMap::new();
 
         for song_data in response {
-            let song_data = serde_json::from_value::<SongData>(song_data.clone())?;
-
             if media_file_ids.contains(&&song_data.id) {
                 result.insert(song_data.id.clone(), song_data);
             }

@@ -79,15 +79,5 @@ async fn main() {
 
     let state = ApiState::new(scrobbles, mbz_session).expect("Failed to initialize API state");
 
-    // // This is the code i used for testing mbz integration
-    // let artist = state.storage.get_artist(
-    //     1, uuid::Uuid::from_str("a8c6ef99-6a24-4c68-83e5-35aa1eca32fa").unwrap()
-    // ).await.unwrap();
-
-    // match artist {
-    //     Some(v) => println!("{:?}", v),
-    //     None => println!("No artists")
-    // }
-
     start_backend(state).await;
 }

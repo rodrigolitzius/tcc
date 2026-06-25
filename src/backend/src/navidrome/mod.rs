@@ -3,6 +3,7 @@ pub mod subsonic;
 
 use axum::http::{HeaderMap, HeaderValue};
 use rand::{distr::Alphanumeric};
+use uuid::Uuid;
 use std::collections::HashMap;
 use reqwest::{self, Method};
 use serde::{Deserialize, Serialize};
@@ -55,7 +56,8 @@ pub struct LoginResponse {
 pub struct ArtistGetArtist {
     pub name: String,
     pub album_count: u64,
-    pub album: Vec<AlbumGetArtist>
+    pub album: Vec<AlbumGetArtist>,
+    pub music_brainz_id: Option<Uuid>
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

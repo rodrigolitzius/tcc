@@ -6,7 +6,7 @@ impl Storage {
         return Self {db, mbz};
     }
 
-    pub async fn get_artist(&self, domain_id: u64, artist_id: uuid::Uuid) -> Result<Option<MbzArtist>, StorageError> {
+    pub async fn get_artist(&self, domain_id: i64, artist_id: uuid::Uuid) -> Result<Option<MbzArtist>, StorageError> {
         match self.db.get_artist(domain_id, artist_id)? {
             Some(v) => {
                 return Ok(Some(serde_json::from_str::<MbzArtist>(v.as_str())?))

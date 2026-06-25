@@ -16,7 +16,7 @@ pub async fn relay(
         client_queries.push((query.0.clone(), query.1.clone()));
     }
 
-    let url = format!("{}/rest/{}", session.navidrome_native.url, tail);
+    let url = format!("{}/rest/{}", session.navidrome_subsonic.url, tail);
 
     headers.remove(header::HOST);
 

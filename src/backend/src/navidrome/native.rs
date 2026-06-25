@@ -1,5 +1,3 @@
-use serde::de::Error;
-
 use crate::{navidrome::*};
 
 impl NavidromeNativeSession {

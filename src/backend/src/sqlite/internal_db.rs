@@ -31,17 +31,21 @@ impl InternalDB {
         return Ok(());
     }
 
-    pub fn add_domain(&self, domain: String) -> Result<(), rusqlite::Error> {
-        let _changed = self.open()?.execute(format!("
+    pub fn add_domain(&self, domain: String) -> Result<i64, rusqlite::Error> {
+        let id = self.open()?.query_row(format!("
             INSERT INTO domain (domain)
             VALUES ('{}')
-            ", domain).as_str(), []
+            ON CONFLICT(domain)
+            DO UPDATE SET domain = excluded.domain
+            RETURNING id
+            ", domain).as_str(), [],
+            |row| {row.get::<usize, i64>(0)}
         );
 
-        return Ok(());
+        return id;
     }
 
-    pub fn add_artist(&self, domain_id: u64, artist_id: uuid::Uuid, json: serde_json::Value) -> Result<(), rusqlite::Error> {
+    pub fn add_artist(&self, domain_id: i64, artist_id: uuid::Uuid, json: serde_json::Value) -> Result<(), rusqlite::Error> {
         let db = self.open()?;
         db.execute(format!("
             INSERT INTO artist (id, domain_id, json) VALUES ('{}', {}, '{}')
@@ -50,7 +54,7 @@ impl InternalDB {
         return Ok(());
     }
 
-    pub fn get_artist(&self, domain_id: u64, artist_id: uuid::Uuid) -> Result<Option<String>, rusqlite::Error> {
+    pub fn get_artist(&self, domain_id: i64, artist_id: uuid::Uuid) -> Result<Option<String>, rusqlite::Error> {
         let db = self.open()?;
         let mut stmt = db.prepare(format!("
             SELECT json FROM artist

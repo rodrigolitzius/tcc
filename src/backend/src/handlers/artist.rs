@@ -10,6 +10,8 @@ use crate::{
 struct ArtistResponse {
     name: String,
     album_count: u64,
+    artist_type: Option<String>,
+    gender: Option<String>,
     albums: Vec<AlbumResponse>
 }
 
@@ -56,9 +58,28 @@ pub async fn artist_info(
         });
     }
 
+    let mbz_artist = match artist_info.music_brainz_id {
+        Some(v) => state.storage.get_artist(session.db_domain_id, v).await?,
+        None => None
+    };
+
+    let mut artist_type = Option::None;
+    let mut gender = Option::None;
+
+    match mbz_artist {
+        Some(v) => {
+            artist_type = Some(v.artist_type);
+            gender = v.gender;
+        },
+
+        None => {}
+    }
+
     response_albums.sort_by(|a, b| { b.played_hours.total_cmp(&a.played_hours)});
 
     let result = ArtistResponse {
+        artist_type: artist_type,
+        gender: gender,
         name: artist_info.name,
         album_count: artist_info.album_count,
         albums: response_albums

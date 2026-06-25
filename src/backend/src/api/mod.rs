@@ -15,6 +15,7 @@ pub struct LoginSession {
     pub uuid: uuid::Uuid,
     pub scrobbles: Vec<Scrobble>,
     pub tracks_hashmap: HashMap<String, SongData>,
+    pub db_domain_id: i64
 }
 
 #[derive(Clone)]

@@ -1,6 +1,17 @@
+use std::str::FromStr;
+
 use serde::de::Error;
 
 use crate::{navidrome::*};
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RawArtistGetArtist {
+    name: String,
+    album_count: u64,
+    album: Vec<AlbumGetArtist>,
+    music_brainz_id: String
+}
 
 impl NavidromeSubsonicSession {
     // TODO: Actually test if this fails if the login request has invalid credentials
@@ -77,7 +88,17 @@ impl NavidromeSubsonicSession {
                 )
             )?;
 
-        let artist: ArtistGetArtist = serde_json::from_value::<ArtistGetArtist>(artist.clone())?;
+        let artist: RawArtistGetArtist = serde_json::from_value::<RawArtistGetArtist>(artist.clone())?;
+
+        let artist = ArtistGetArtist {
+            name: artist.name,
+            album_count: artist.album_count,
+            album: artist.album,
+            music_brainz_id: match Uuid::from_str(&artist.music_brainz_id) {
+                Ok(v) => Some(v),
+                Err(_) => None,
+            }
+        };
 
         return Ok(artist);
     }

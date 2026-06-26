@@ -17,6 +17,21 @@ document.addEventListener('DOMContentLoaded', function () {
         window.location.replace('../index.html');
     });
 
+    // mapa nome-do-artista (normalizado) -> id, usado pra descobrir se o
+    // subtitulo de artista nos cards de album/faixa pode virar link.
+    // Só conseguimos resolver nomes que aparecem em /most-played/artists;
+    // nomes fora dessa lista (feat., grafia diferente, pouco tocados) ficam
+    // como texto normal, sem virar link.
+    let mapaArtistas = {};
+
+    function normaliza(nome) {
+        return (nome || '').trim().toLowerCase();
+    }
+
+    function urlArtista(id, nome) {
+        return 'artist.html?id=' + encodeURIComponent(id) + '&nome=' + encodeURIComponent(nome || '');
+    }
+
     function gradientePorNome(nome) {
         let hash = 0;
         for (let i = 0; i < nome.length; i++) {
@@ -108,13 +123,34 @@ document.addEventListener('DOMContentLoaded', function () {
         const overlay = document.createElement('div');
         overlay.className = 'top-card-overlay';
 
-        let html = '<div class="top-card-name">' + nome + '</div>';
-        if (subtitulo) {
-            html += '<div class="top-card-sub">' + subtitulo + '</div>';
-        }
-        html += '<div class="top-card-plays">' + plays + (plays === 1 ? ' play' : ' plays') + '</div>';
+        const nomeDiv = document.createElement('div');
+        nomeDiv.className = 'top-card-name';
+        nomeDiv.textContent = nome;
+        overlay.appendChild(nomeDiv);
 
-        overlay.innerHTML = html;
+        if (subtitulo) {
+            const subDiv = document.createElement('div');
+            subDiv.className = 'top-card-sub';
+            subDiv.textContent = subtitulo;
+
+            // se o nome do artista bate com algum id conhecido, vira link
+            const artistId = mapaArtistas[normaliza(subtitulo)];
+            if (artistId) {
+                subDiv.classList.add('artist-link');
+                subDiv.addEventListener('click', function (ev) {
+                    ev.stopPropagation();
+                    window.location.href = urlArtista(artistId, subtitulo);
+                });
+            }
+
+            overlay.appendChild(subDiv);
+        }
+
+        const playsDiv = document.createElement('div');
+        playsDiv.className = 'top-card-plays';
+        playsDiv.textContent = plays + (plays === 1 ? ' play' : ' plays');
+        overlay.appendChild(playsDiv);
+
         card.appendChild(overlay);
 
         return card;
@@ -150,39 +186,54 @@ document.addEventListener('DOMContentLoaded', function () {
             });
     }
 
-    function carregaArtistas() {
+    function renderizaArtistas(artistas) {
         const grid = document.getElementById('grid-artistas');
 
-        fetch(server_url + '/most-played/artists?limit=9', {
-            headers: { 'Authorization': token }
-        })
-            .then(function (r) {
-                if (!r.ok) throw new Error('erro ' + r.status);
-                return r.json();
-            })
-            .then(function (artistas) {
-                if (!artistas || artistas.length === 0) {
-                    grid.innerHTML = '<p style="color:#94a3b8;">Nenhum dado encontrado.</p>';
-                    return;
-                }
+        if (!artistas || artistas.length === 0) {
+            grid.innerHTML = '<p style="color:#94a3b8;">Nenhum dado encontrado.</p>';
+            return;
+        }
 
-                grid.innerHTML = '';
+        grid.innerHTML = '';
 
-                artistas.forEach(function (artista, index) {
-                    const card = montaCardArtista(artista.name, artista.plays);
-                    if (index === 0) {
-                        card.classList.add('destaque');
-                    }
-                    grid.appendChild(card);
-                    aplicaFotoArtista(card, artista.id);
-                });
-            })
-            .catch(function (err) {
-                grid.innerHTML = '<p style="color:#f87171;">Erro: ' + err.message + '</p>';
+        artistas.slice(0, 9).forEach(function (artista, index) {
+            const card = montaCardArtista(artista.name, artista.plays);
+            if (index === 0) {
+                card.classList.add('destaque');
+            }
+            card.addEventListener('click', function () {
+                window.location.href = urlArtista(artista.id, artista.name);
             });
+            grid.appendChild(card);
+            aplicaFotoArtista(card, artista.id);
+        });
     }
 
-    carregaArtistas();
-    carregaComCapaPropria('/most-played/albums', 'grid-albuns', function (item) { return item.artist; });
-    carregaComCapaPropria('/most-played/tracks', 'grid-faixas', function (item) { return item.artist; });
+    // busca TODOS os artistas (sem limit) de uma vez: usa esse resultado pra
+    // montar o grid de Top Artistas E pra preencher o mapaArtistas usado nos
+    // subtitulos de album/faixa. So depois disso carrega albuns e faixas.
+    fetch(server_url + '/most-played/artists', {
+        headers: { 'Authorization': token }
+    })
+        .then(function (r) {
+            if (!r.ok) throw new Error('erro ' + r.status);
+            return r.json();
+        })
+        .then(function (artistas) {
+            artistas = artistas || [];
+
+            artistas.forEach(function (artista) {
+                mapaArtistas[normaliza(artista.name)] = artista.id;
+            });
+
+            renderizaArtistas(artistas);
+            carregaComCapaPropria('/most-played/albums', 'grid-albuns', function (item) { return item.artist; });
+            carregaComCapaPropria('/most-played/tracks', 'grid-faixas', function (item) { return item.artist; });
+        })
+        .catch(function (err) {
+            document.getElementById('grid-artistas').innerHTML = '<p style="color:#f87171;">Erro: ' + err.message + '</p>';
+            // ainda assim tenta carregar albuns/faixas, so sem os links de artista
+            carregaComCapaPropria('/most-played/albums', 'grid-albuns', function (item) { return item.artist; });
+            carregaComCapaPropria('/most-played/tracks', 'grid-faixas', function (item) { return item.artist; });
+        });
 });

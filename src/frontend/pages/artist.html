@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="../favicon.png">
+    <link rel="stylesheet" href="../style.css">
+    <title>Artista</title>
+</head>
+<body>
+    <div class="container">
+        <div class="page-header">
+            <h1 id="page-title">Artista</h1>
+            <div class="page-actions">
+                <button id="back-btn" class="btn-secondary">← Mais Tocados</button>
+                <button id="logout-btn" class="btn-danger">Sair</button>
+            </div>
+        </div>
+
+        <div id="artist-banner" class="artist-banner">
+            <div class="artist-banner-photo">
+                <img id="artist-photo-img" class="artist-photo-img" alt="">
+                <div id="artist-photo-initial" class="artist-photo-initial"></div>
+            </div>
+            <div class="artist-banner-info">
+                <h2 id="artist-name">Carregando...</h2>
+                <div id="artist-meta" class="artist-meta"></div>
+            </div>
+        </div>
+
+        <div class="card" style="margin-top:24px;">
+            <h3 style="margin-bottom:16px;">Top Álbuns</h3>
+            <div id="grid-albuns" class="top-grid">
+                <p>Carregando...</p>
+            </div>
+        </div>
+    </div>
+    <script src="javascript/artist.js"></script>
+</body>
+</html>

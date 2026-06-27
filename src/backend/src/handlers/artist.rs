@@ -43,16 +43,28 @@ pub async fn artist_info(
     let album_stat = AlbumStat::group((scrobbles, &session.tracks_hashmap), Some(album_ids.clone()));
 
     let mut response_albums: Vec<AlbumResponse> = Vec::new();
-    for album in artist.albums {
-        let stat = album_stat.get(&album.id).ok_or(ApiError::Internal("Missing IDs".into()))?;
+
+    let mut missing_albums: usize = 0;
+    for album in &artist.albums {
+        let stat = match album_stat.get(&album.id) {
+            Some(v) => v,
+            None => {
+                missing_albums += 1;
+                continue;
+            }
+        };
 
         response_albums.push(AlbumResponse {
-            id: album.id,
+            id: album.id.clone(),
             name: stat.name.clone(),
             played_hours: stat.played_hours,
             plays: stat.plays,
             year: album.year,
         });
+    }
+
+    if missing_albums == artist.albums.len() {
+        return Err(ApiError::Internal("Artist has no albums played".into()))
     }
 
     let mbz_artist = match artist.music_brainz_id {
@@ -78,7 +90,7 @@ pub async fn artist_info(
         artist_type: artist_type,
         gender: gender,
         name: artist.name,
-        album_count: artist.album_count,
+        album_count: artist.albums.len() as u64,
         albums: response_albums
     };
 

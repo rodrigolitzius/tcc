@@ -13,7 +13,6 @@ pub struct Artist {
     #[allow(unused)]
     pub id: String,
     pub name: String,
-    pub album_count: u64,
     pub music_brainz_id: Option<Uuid>,
     pub albums: Vec<Album>
 }
@@ -47,11 +46,8 @@ impl Artist {
             new_albums.push(album.into());
         }
 
-        let album_length = new_albums.len();
-
         let result = Artist {
             albums: new_albums,
-            album_count: album_length as u64,
             id: artist.id,
             music_brainz_id: artist.music_brainz_id,
             name: artist.name

@@ -1,7 +1,7 @@
 use crate::{
     handlers::*,
     navidrome::*,
-    analysis::{GroupScrobble, artists::ArtistStat}
+    analysis::artists::ArtistStat
 };
 
 pub async fn most_played_artists(
@@ -14,7 +14,7 @@ pub async fn most_played_artists(
 
     let scrobbles = Scrobble::filter_range(&session.scrobbles, range);
 
-    let artist_stat = ArtistStat::group((scrobbles, &session.tracks_hashmap), ());
+    let artist_stat = ArtistStat::group(scrobbles, &session.tracks_hashmap);
 
     let mut limit = get_param_default(&query, "limit", artist_stat.len());
     if limit > artist_stat.len() {

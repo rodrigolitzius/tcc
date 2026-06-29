@@ -2,7 +2,7 @@ use serde::Serialize;
 
 use crate::{
     handlers::*,
-    analysis::{GroupScrobble, albums::AlbumStat, artist::ArtistStat},
+    analysis::{albums::AlbumStat, artist::ArtistStat},
     navidrome::{Scrobble, Artist}
 };
 
@@ -39,7 +39,7 @@ pub async fn artist_info(
     );
 
     let album_ids: Vec<String> = artist.albums.iter().map(|a| a.id.clone()).collect();
-    let album_stat = AlbumStat::group((scrobbles, &session.tracks_hashmap), Some(album_ids.clone()));
+    let album_stat = AlbumStat::group(scrobbles, &session.tracks_hashmap, Some(album_ids.clone()));
 
     let mbz_artist = match artist.music_brainz_id {
         Some(v) => state.storage.get_artist(session.db_domain_id, v).await?,

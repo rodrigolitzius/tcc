@@ -3,8 +3,7 @@ use std::collections::HashMap;
 use serde::Serialize;
 
 use crate::{
-    navidrome::{Scrobble, native::SongData},
-    analysis::GroupScrobble
+    navidrome::{Scrobble, native::SongData}
 };
 
 #[derive(Serialize, Clone)]
@@ -16,16 +15,15 @@ pub struct TrackStat {
     pub played_hours: f64
 }
 
-impl<'a> GroupScrobble<'a> for TrackStat {
-    type Result = HashMap<String, TrackStat>;
-    type Source = (Vec<&'a Scrobble>, &'a HashMap<String, SongData>);
-    type Include = ();
+impl TrackStat {
+    pub fn group(
+        scrobbles: Vec<&Scrobble>,
+        track_hashmap: &HashMap<String, SongData>
+    ) -> HashMap<String, TrackStat> {
+        let mut track_stat: HashMap<String, TrackStat> = HashMap::new();
 
-    fn group(source: Self::Source, _include: Self::Include) -> Self::Result {
-        let mut track_stat: Self::Result = HashMap::new();
-
-        for scrobble in source.0 {
-            let song_data = match source.1.get(&scrobble.media_file_id) {
+        for scrobble in scrobbles {
+            let song_data = match track_hashmap.get(&scrobble.media_file_id) {
                 Some(v) => v,
                 None => continue
             };
